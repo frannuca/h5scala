@@ -1,165 +1,92 @@
 package org.fjn.monad
 
-import ncsa.hdf.hdf5lib.H5
-import ncsa.hdf.hdf5lib.HDF5Constants
-import scala.StringContext.InvalidEscapeException
-import scala.annotation.tailrec
-import scala.collection.JavaConversions._
-import scala.collection.mutable.ListBuffer
-import scala.reflect.ClassTag
+import ncsa.hdf.hdf5lib.{H5, HDF5Constants}
 
 
+/**
+ * transformation from unsupported types which can be transferred as Byte. One case woudl be Char, which can be automatically
+ * transferred ad Byte for reading and writing
+ * @tparam A
+ */
+trait H5MapTransformation[A] {
+  def map(a: A): Byte
 
+  def imap(b: Byte): A
 
-
-  trait H5MapTransformation[A]{
-    def map(a:A):Byte
-    def imap(b:Byte):A
-    def typeInfo = HDF5Constants.H5T_NATIVE_B8
-  }
-
-
-trait H5MonadOps{
-
-  self:H5MonadOps =>
-
-
-  import CorrectPath._
-
-
-  val obj:H5Id
-  protected val locW:Option[String]
-
-
-  def in(location:String)=new H5MonadOpsWriter{
-    val locW = Some(location.toCorrectedH5Path)
-    val obj = self.obj
-
-  }
-
-  def from(location:String)=new H5MonadOpsReader{
-    val locW = Some(location.toCorrectedH5Path)
-    val obj = self.obj
-  }
-  
-
-
-
-
-
-
-}
-
-trait H5MonadOpsReader extends H5MonadOps{
-
-  def read[A:H5MonadType:ClassTag](datasetName:String): Array[A] ={
-
-    import Using._
-    import H5Object._
-
-
-    locW match{
-      case Some(location)=>
-
-
-        val F = implicitly[H5MonadType[A]]
-        val  mapping = F.mapping
-
-        val typeInfo = F.getType
-        val dataset_id = obj.getDatasetId(location,datasetName)
-
-        val dspace  = H5.H5Dget_space(dataset_id)
-        val ndims  = H5.H5Sget_simple_extent_ndims(dspace)
-
-        val dims = Array[Long](ndims)
-
-        H5.H5Sget_simple_extent_dims(dspace, dims, null)
-
-        val dset_data = mapping.map(t => Array.ofDim[Byte](dims(0).toInt)).getOrElse( Array.ofDim[A](dims(0).toInt))
-
-        H5.H5Dread(dataset_id,mapping.map(_.typeInfo).getOrElse(typeInfo),
-          HDF5Constants.H5S_ALL, HDF5Constants.H5S_ALL,
-          HDF5Constants.H5P_DEFAULT, dset_data)
-
-
-        mapping.map(_.typeInfo).getOrElse(typeInfo) match{
-          case HDF5Constants.H5T_NATIVE_B8 => dset_data.map(_.asInstanceOf[Byte]).map( mapping.get.imap _)
-          case _=>    dset_data.map(_.asInstanceOf[A])
-
-        }
-
-      case _=>
-        throw new Throwable("location to read not set")
-    }
-
-  }
+  def typeInfo = HDF5Constants.H5T_NATIVE_B8
 }
 
 
-trait H5MonadOpsWriter extends H5MonadOps{
+trait H5Monad[A] {
+  def getType: Int
 
-   self:H5MonadOps =>
-  def write[A:H5MonadType:ClassTag](a: Array[A],datasetName:String) ={
-
-    import  Using._
-    import H5Object._
+  val mapping: Option[H5MapTransformation[A]]
+}
 
 
-    locW match{
-      case Some(location)=>
-        val F = implicitly[H5MonadType[A]]
-        val  mapping = F.mapping
+object H5Monad {
 
-        val typeInfo = F.getType
-        val h5TypeConverted =  mapping.map(_.typeInfo).getOrElse(typeInfo)
-        val m = implicitly[ClassTag[A]]
+  /** enabling implicits on Optional, allowing to translate missing expected implicit object to None **/
+  implicit def OptionalImplicit[A <: AnyRef](implicit a: A = null) = Option(a)
 
 
+  /**
+   * map transformation necessary to allow simple translation non-numeric type into bytes
+   * This operation is defined to transfer into the hdf5 Chars as Bytes.
+   */
+  implicit val h5CharTrans = new H5MapTransformation[Char] {
+    override def map(a: Char): Byte = a.toByte
 
-
-
-        val id = obj.seek(location,true)
-
-
-        using(DataSpaceManager(a.size,1)){dsp =>{
-          using(DataSetManagerCreator(obj.fid,location,datasetName,dsp.id,h5TypeConverted)){ dset =>{
-
-
-
-            mapping match{
-              case Some(m)=>
-                H5.H5Dwrite(dset.dataset_id, h5TypeConverted,
-                  HDF5Constants.H5S_ALL, HDF5Constants.H5S_ALL,
-                  HDF5Constants.H5P_DEFAULT, a.map(d=> m.map(d).asInstanceOf[Byte]))
-              case None =>
-                H5.H5Dwrite(dset.dataset_id,  h5TypeConverted,
-                  HDF5Constants.H5S_ALL, HDF5Constants.H5S_ALL,
-                  HDF5Constants.H5P_DEFAULT, a)
-
-            }
-
-
-          }
-
-          }
-        }}
-
-        new H5MonadOpsWriter {
-          override protected val locW = None
-          override val obj: H5Id = self.obj
-        }
-
-      case _=>
-        throw new Throwable("no location specified")
-    }
-
+    override def imap(b: Byte): Char = b.toChar
   }
+
+
+  implicit val h5IntTrans = new H5Monad[Int] {
+    def getType: Int = HDF5Constants.H5T_NATIVE_INT
+
+    override val mapping = implicitly[Option[H5MapTransformation[Int]]]
+  }
+
+
+  /** ****************************************************************************************
+    * List of transformations for simple types Char, Double, Float etc...
+    * ********************************************************************************************/
+
+  implicit val h5DoubleTrans = new H5Monad[Double] {
+    def getType: Int = HDF5Constants.H5T_NATIVE_DOUBLE
+
+    override val mapping = implicitly[Option[H5MapTransformation[Double]]]
+  }
+
+  implicit val h5FloatType = new H5Monad[Float] {
+    def getType: Int = HDF5Constants.H5T_NATIVE_FLOAT
+
+    override val mapping = implicitly[Option[H5MapTransformation[Float]]]
+  }
+
+  implicit val h5CType = new H5Monad[Char] {
+    def getType: Int = HDF5Constants.H5T_NATIVE_CHAR
+
+    override val mapping = implicitly[Option[H5MapTransformation[Char]]]
+  }
+
+  implicit val h5LType = new H5Monad[Long] {
+    def getType: Int = HDF5Constants.H5T_NATIVE_INT64
+
+    override val mapping = implicitly[Option[H5MapTransformation[Long]]]
+  }
+
+  implicit val h5ShortType = new H5Monad[Short] {
+    def getType: Int = HDF5Constants.H5T_NATIVE_SHORT
+
+    override val mapping = implicitly[Option[H5MapTransformation[Short]]]
+  }
+
+
+  implicit val h5SType = new H5Monad[Byte] {
+    def getType: Int = H5.H5Tcopy(HDF5Constants.H5T_NATIVE_B8)
+
+    override val mapping = implicitly[Option[H5MapTransformation[Byte]]]
+  }
+
 }
-
-trait H5MonadType[A] {
-  def getType:Int
-  val mapping:Option[H5MapTransformation[A]]
-}
-
-
-

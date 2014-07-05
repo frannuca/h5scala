@@ -37,6 +37,8 @@ object Dependencies {
 }
 
 object ProjectBuild extends Build {
+
+
   import Resolvers._
   import Dependencies._
   import BuildSettings._
@@ -47,7 +49,7 @@ object ProjectBuild extends Build {
   lazy val p = Project (
     "h5scala",
     file ("."),
-    settings = buildSettings++ Seq (resolvers :=  Seq(), libraryDependencies ++=Seq(junit,scalaTest,scalaCompiler,scalaReflect))
+    settings = buildSettings++ Seq (resolvers :=  Seq(), libraryDependencies ++=Seq(log4j,junit,scalaTest,scalaCompiler,scalaReflect))
 
   ) //aggregate (optimizer,ia, fjn.fjn.fjn.pythia.pricers)
 
