@@ -8,14 +8,20 @@ import scala.collection.mutable.ListBuffer
 /**
  * Created by fran on 04/07/2014.
  */
+
+/**
+ * Provides the functionality to navigate and create groups withing the underneath H5Object
+ */
 trait H5Id{
   val fid:Int
+
   /**
-   * position the cursor to the specified group position.
-   * @param path path locating the group to be reached. i.e: /mygroup1/mygroup2
-   * @return id of the location given in path
+   * Places the cursor into the provided position craating on the demand any group that maybe specified in the path.
+   * @param path0  location inside the HDF5 file where to place the cursor
+   * @param createOntheFly if set to true any group non existent in the file but specified in the path will be created
+   * @return return the internal identifier of the provided position
    */
-  def seek(path0:String,createOntheFly:Boolean)={
+  def seek(path0:String,createOntheFly:Boolean): Int ={
 
     val path = if(path0.last == '/')
                   path0.init
@@ -51,6 +57,12 @@ trait H5Id{
   }
 
 
+  /**
+   * given the path to a given group and a dataset name inside the group it returns the associate internal id of the dataset
+   * @param path group path with '/' separators. i.e: "/series/SWX"
+   * @param datasetName name of the dataset. i.e "window1"
+   * @return
+   */
   def getDatasetId(path:String,datasetName:String)={
 
 

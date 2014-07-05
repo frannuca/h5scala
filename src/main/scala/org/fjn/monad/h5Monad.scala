@@ -23,76 +23,34 @@ trait H5MonadOps{
 
   self:H5MonadOps =>
 
+
+  import CorrectPath._
+
+
   val obj:H5Id
-  protected val locW:Option[Either[String,String]]
+  protected val locW:Option[String]
 
 
-  def in(location:String)=new H5MonadOps{
-    val locW = Some(Left(location))
+  def in(location:String)=new H5MonadOpsWriter{
+    val locW = Some(location.toCorrectedH5Path)
     val obj = self.obj
 
   }
 
-  def from(location:String)=new H5MonadOps{
-    val locW = Some(Right(location))
+  def from(location:String)=new H5MonadOpsReader{
+    val locW = Some(location.toCorrectedH5Path)
     val obj = self.obj
   }
   
-  def write[A:H5MonadType:ClassTag](a: Array[A],datasetName:String) ={
-
-    import  Using._
-    import H5Object._
-
-
-    locW match{
-      case Some(Left(location))=>
-        val F = implicitly[H5MonadType[A]]
-        val  mapping = F.mapping
-
-        val typeInfo = F.getType
-        val h5TypeConverted =  mapping.map(_.typeInfo).getOrElse(typeInfo)
-        val m = implicitly[ClassTag[A]]
 
 
 
 
 
-        val id = obj.seek(location,true)
 
+}
 
-        using(DataSpaceManager(a.size,1)){dsp =>{
-          using(DataSetManagerCreator(obj.fid,location,datasetName,dsp.id,h5TypeConverted)){ dset =>{
-
-
-
-           mapping match{
-             case Some(m)=>
-               H5.H5Dwrite(dset.dataset_id, h5TypeConverted,
-                 HDF5Constants.H5S_ALL, HDF5Constants.H5S_ALL,
-                 HDF5Constants.H5P_DEFAULT, a.map(d=> m.map(d).asInstanceOf[Byte]))
-             case None =>
-               H5.H5Dwrite(dset.dataset_id,  h5TypeConverted,
-                 HDF5Constants.H5S_ALL, HDF5Constants.H5S_ALL,
-                 HDF5Constants.H5P_DEFAULT, a)
-
-           }
-
-
-          }
-
-          }
-        }}
-
-        new H5MonadOps {
-          override protected val locW = None
-          override val obj: H5Id = self.obj
-        }
-
-      case _=>
-        throw new Throwable("no location specified")
-    }
-
-  }
+trait H5MonadOpsReader extends H5MonadOps{
 
   def read[A:H5MonadType:ClassTag](datasetName:String): Array[A] ={
 
@@ -101,7 +59,7 @@ trait H5MonadOps{
 
 
     locW match{
-      case Some(Right(location))=>
+      case Some(location)=>
 
 
         val F = implicitly[H5MonadType[A]]
@@ -134,12 +92,69 @@ trait H5MonadOps{
         throw new Throwable("location to read not set")
     }
 
+  }
 }
 
 
+trait H5MonadOpsWriter extends H5MonadOps{
 
+   self:H5MonadOps =>
+  def write[A:H5MonadType:ClassTag](a: Array[A],datasetName:String) ={
+
+    import  Using._
+    import H5Object._
+
+
+    locW match{
+      case Some(location)=>
+        val F = implicitly[H5MonadType[A]]
+        val  mapping = F.mapping
+
+        val typeInfo = F.getType
+        val h5TypeConverted =  mapping.map(_.typeInfo).getOrElse(typeInfo)
+        val m = implicitly[ClassTag[A]]
+
+
+
+
+
+        val id = obj.seek(location,true)
+
+
+        using(DataSpaceManager(a.size,1)){dsp =>{
+          using(DataSetManagerCreator(obj.fid,location,datasetName,dsp.id,h5TypeConverted)){ dset =>{
+
+
+
+            mapping match{
+              case Some(m)=>
+                H5.H5Dwrite(dset.dataset_id, h5TypeConverted,
+                  HDF5Constants.H5S_ALL, HDF5Constants.H5S_ALL,
+                  HDF5Constants.H5P_DEFAULT, a.map(d=> m.map(d).asInstanceOf[Byte]))
+              case None =>
+                H5.H5Dwrite(dset.dataset_id,  h5TypeConverted,
+                  HDF5Constants.H5S_ALL, HDF5Constants.H5S_ALL,
+                  HDF5Constants.H5P_DEFAULT, a)
+
+            }
+
+
+          }
+
+          }
+        }}
+
+        new H5MonadOpsWriter {
+          override protected val locW = None
+          override val obj: H5Id = self.obj
+        }
+
+      case _=>
+        throw new Throwable("no location specified")
+    }
+
+  }
 }
-
 
 trait H5MonadType[A] {
   def getType:Int
