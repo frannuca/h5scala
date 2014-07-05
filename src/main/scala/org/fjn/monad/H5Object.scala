@@ -12,7 +12,8 @@ import ncsa.hdf.hdf5lib.{HDF5Constants, H5}
  * traits to perform access to the hdf5 data.
  * @param filePath path to the location of the h5 file
  */
-case class H5Object(filePath:String){
+trait H5Object{
+  val filePath:String
   private var fileId:Option[Int] = None
 
 
@@ -45,58 +46,72 @@ case class H5Object(filePath:String){
 }
 
 
-object H5ObjectTransformations{
+/**
+ * object hosting all creation and transformation 
+ */
+object H5Object{
 
   /**
-   * given a path returs the correspondent H5Object
+   * given a path returns the correspondent H5Object
    * @param path   h5 file location
    * @return   H5Object instance
    */
   def apply(path:String): H5Object ={
-    H5Object(filePath = path)
+    new H5Object{
+      val filePath = path
+
+    }
   }
 
 
   implicit def OptionalImplicit[A <: AnyRef](implicit a: A = null) = Option(a)
 
 
-  implicit def CharTransformation = new H5MapTransformation[Char]{
+  implicit val CharTransformation = new  H5MapTransformation[Char]{
     override def map(a: Char): Byte = a.toByte
 
     override def imap(b: Byte): Char = b.toChar
+
+
   }
+
+
 
   implicit val h5IType = new  H5MonadType[Int] {
     def getType: Int = HDF5Constants.H5T_NATIVE_INT
+    override val mapping = implicitly[Option[H5MapTransformation[Int]]]
   }
 
   implicit val h5DType = new  H5MonadType[Double]{
     def getType:Int = HDF5Constants.H5T_NATIVE_DOUBLE
+    override val mapping = implicitly[Option[H5MapTransformation[Double]]]
   }
 
   implicit val h5FType = new  H5MonadType[Float]{
     def getType:Int = HDF5Constants.H5T_NATIVE_FLOAT
+    override val mapping = implicitly[Option[H5MapTransformation[Float]]]
   }
 
   implicit val h5CType = new  H5MonadType[Char]{
-    def getType:Int = HDF5Constants.H5T_NATIVE_B8
+    def getType:Int = HDF5Constants.H5T_NATIVE_CHAR
+    override val mapping = implicitly[Option[H5MapTransformation[Char]]]
   }
 
-  implicit val h5StringType = new  H5MonadType[String]{
-    def getType:Int = HDF5Constants.H5T_NATIVE_B8
-  }
 
   implicit val h5LType = new  H5MonadType[Long]{
     def getType:Int = HDF5Constants.H5T_NATIVE_LONG
+    override val mapping = implicitly[Option[H5MapTransformation[Long]]]
   }
 
   implicit val h5ShortType = new  H5MonadType[Short]{
     def getType:Int = HDF5Constants.H5T_NATIVE_SHORT
+    override val mapping = implicitly[Option[H5MapTransformation[Short]]]
   }
 
 
   implicit val h5SType = new  H5MonadType[Byte]{
     def getType:Int = H5.H5Tcopy(HDF5Constants.H5T_NATIVE_B8)
+    override val mapping = implicitly[Option[H5MapTransformation[Byte]]]
   }
 
 

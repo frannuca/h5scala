@@ -15,8 +15,9 @@ import scala.reflect.ClassTag
   trait H5MapTransformation[A]{
     def map(a:A):Byte
     def imap(b:Byte):A
-    val typeInfo = HDF5Constants.H5T_NATIVE_B8
+    def typeInfo = HDF5Constants.H5T_NATIVE_B8
   }
+
 
 trait H5MonadOps{
 
@@ -40,13 +41,16 @@ trait H5MonadOps{
   def write[A:H5MonadType:ClassTag](a: Array[A],datasetName:String) ={
 
     import  Using._
-    import H5ObjectTransformations._
-    val  mapping = implicitly[Option[H5MapTransformation[A]]]
+    import H5Object._
+
 
     locW match{
       case Some(Left(location))=>
         val F = implicitly[H5MonadType[A]]
+        val  mapping = F.mapping
+
         val typeInfo = F.getType
+        val h5TypeConverted =  mapping.map(_.typeInfo).getOrElse(typeInfo)
         val m = implicitly[ClassTag[A]]
 
 
@@ -57,17 +61,17 @@ trait H5MonadOps{
 
 
         using(DataSpaceManager(a.size,1)){dsp =>{
-          using(DataSetManagerCreator(obj.fid,location,datasetName,dsp.id,typeInfo)){ dset =>{
+          using(DataSetManagerCreator(obj.fid,location,datasetName,dsp.id,h5TypeConverted)){ dset =>{
 
 
 
            mapping match{
              case Some(m)=>
-               H5.H5Dwrite(dset.dataset_id,  mapping.map(_.typeInfo).getOrElse(typeInfo),
+               H5.H5Dwrite(dset.dataset_id, h5TypeConverted,
                  HDF5Constants.H5S_ALL, HDF5Constants.H5S_ALL,
-                 HDF5Constants.H5P_DEFAULT, a.map(d=> m.map(d)))
+                 HDF5Constants.H5P_DEFAULT, a.map(d=> m.map(d).asInstanceOf[Byte]))
              case None =>
-               H5.H5Dwrite(dset.dataset_id,  mapping.map(_.typeInfo).getOrElse(typeInfo),
+               H5.H5Dwrite(dset.dataset_id,  h5TypeConverted,
                  HDF5Constants.H5S_ALL, HDF5Constants.H5S_ALL,
                  HDF5Constants.H5P_DEFAULT, a)
 
@@ -93,14 +97,16 @@ trait H5MonadOps{
   def read[A:H5MonadType:ClassTag](datasetName:String): Array[A] ={
 
     import Using._
-    import H5ObjectTransformations._
-    val  mapping = implicitly[Option[H5MapTransformation[A]]]
+    import H5Object._
+
 
     locW match{
       case Some(Right(location))=>
 
 
         val F = implicitly[H5MonadType[A]]
+        val  mapping = F.mapping
+
         val typeInfo = F.getType
         val dataset_id = obj.getDatasetId(location,datasetName)
 
@@ -137,6 +143,7 @@ trait H5MonadOps{
 
 trait H5MonadType[A] {
   def getType:Int
+  val mapping:Option[H5MapTransformation[A]]
 }
 
 
