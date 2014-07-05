@@ -19,23 +19,23 @@ class h5Tests extends AssertionsForJUnit{
 
 
 
-    val obj: H5Object = H5Monad("C:\\tmp\\test.h5")
+    val obj: H5Object = H5ObjectTransformations("C:\\tmp\\test.h5")
 
 
       var h = obj.create
 
-      import H5Monad._
+      import H5ObjectTransformations._
 
 
-      val expected1 = Array(1.0,2.0,4.0)
-      val expected2 = Array(1,2,4)
-      val expected3 = "this is a string"
+      val expected1 = Array(1.0,2.0,4.0,121.09)
+      val expected2 = Array(1,2,4,9999)
+      val expected3 = "this is a string for all"
 
       obj in "/grp1/grp2/grp3" write(expected1,"dsxx0")
       obj in "/grp1/grp2/grp3" write(expected2,"dsxx1")
       obj in "/grp1/grp2/grp3" write(expected3.toByteArray,"dsStr1")
 
-      obj in "/grp1/grp2/grp3" write(Array[Char]('a','b','c'),"dsChar1")
+      //obj in "/grp1/grp2/grp3" write(Array[Char]('a','b','c'),"dsChar1")
       obj.close
 
       h = obj.open
@@ -43,6 +43,7 @@ class h5Tests extends AssertionsForJUnit{
      val arr1:Array[Double] = obj from "/grp1/grp2/grp3" read "dsxx0"
      val arr2:Array[Int] = obj from "/grp1/grp2/grp3" read "dsxx1"
      val arr3:Array[Byte]= obj from "/grp1/grp2/grp3" read "dsStr1"
+     //val arr4:Array[Char]= obj from "/grp1/grp2/grp3" read "dsChar1"
 
 
       obj.close
