@@ -30,6 +30,10 @@ class TestWritingReading  extends AssertionsForJUnit {
 
   val rngGen = new java.util.Random()
 
+  val arrayOfArrayDouble: Array[Array[Double]] =  (for(i <- 0 until 3) yield {
+      Array.ofDim[Double](5).transform(_ => rngGen.nextDouble()).toArray
+  }).toArray
+
   val arrayOfDouble: Array[Double] =  Array.ofDim[Double](1155000).transform(_ => rngGen.nextDouble()).toArray
   val arrayOfFloat:  Array[Float]  =  Array.ofDim[Float](1155000).transform(_ => rngGen.nextFloat()) .toArray
   val arrayOfInt:    Array[Int]    =  Array.ofDim[Int](1155000).transform(_ => rngGen.nextInt(Int.MaxValue)) .toArray
@@ -53,6 +57,10 @@ class TestWritingReading  extends AssertionsForJUnit {
     val h = obj.create
     logger.info(s"new file created with root id ${h.fid} ")
 
+
+
+     logger.info("writing array of array ...")
+     obj in "test/arrayofarray" write (arrayOfArrayDouble,"dddoubles")
 
     logger.info("writing array of doubles ...")
     obj in "/test/general/arrayof/" write(arrayOfDouble,"dsDoubles")
@@ -79,6 +87,10 @@ class TestWritingReading  extends AssertionsForJUnit {
     logger.info("opening read only  operations")
     obj.open
 
+
+     logger.info("reading array of array of doubles ...")
+     val arrayOfArrayDouble2:Array[Array[Double]] = obj from  "test/arrayofarray" readMatrix  "dddoubles"
+
     logger.info("reading array of doubles ...")
     val arrayOfDouble2:Array[Double] = obj from "/test/general/arrayof/" read "dsDoubles"
 
@@ -99,6 +111,14 @@ class TestWritingReading  extends AssertionsForJUnit {
 
 
     logger.info("comparing data ...")
+
+
+
+    arrayOfArrayDouble.indices.foreach(i =>{
+
+      assertEquals("Failed to recover array of Doubles",(arrayOfArrayDouble(i) zip arrayOfArrayDouble2(i)).map(x => x._1-x._2).fold(0.0d)(_ + _) ,0.0d,0.0d)
+    })
+
     assertEquals("Failed to recover array of Doubles",(arrayOfDouble zip arrayOfDouble2).map(x => x._1-x._2).fold(0.0d)(_ + _) ,0.0d,0.0d)
     assertEquals("Failed to recover array of Floats",(arrayOfFloat zip arrayOfFloat2).map(x => x._1-x._2).fold(0.0f)(_ + _) ,0.0f,0.0f)
     assertEquals("Failed to recover array of Integers",(arrayOfInt zip arrayOfInt2).map(x => x._1-x._2).fold(0)(_ + _),0)
