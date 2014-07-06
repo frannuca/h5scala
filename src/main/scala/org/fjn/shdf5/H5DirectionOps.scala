@@ -53,7 +53,38 @@ trait H5DirectionOps{
  */
 trait H5DirectionOpsReader extends H5DirectionOps{
 
-  def readMatrix[A:H5Transformation:ClassTag](datasetName:String): Array[Array[A]] ={
+  def read3DMatrix[A:H5Transformation:ClassTag](datasetName:String): Array[Array[Array[A]]] ={
+
+    import Using._
+    import H5Object._
+
+    locW match{
+      case Some(location)=>
+
+        val F = implicitly[H5Transformation[A]]
+        val  mapping = F.mapping
+
+        val typeInfo = F.getType
+        val dataset_id = obj.getDatasetId(location,datasetName)
+
+        //Get dimenstion for the matrix:
+        val attr = H5.H5Aopen(dataset_id,"size",HDF5Constants.H5P_DEFAULT)
+        val size = Array.ofDim[Long](3);
+        H5.H5Aread(attr,  HDF5Constants.H5T_NATIVE_INT64,size)
+        H5.H5Aclose(attr)
+
+        val retArray: Array[A] = read(datasetName)
+
+        retArray.grouped(size(1).toInt * size(2).toInt).toArray.map(_.grouped(size(2).toInt).toArray)
+
+
+
+      case _=>
+        throw new Throwable("location to read not set")
+    }
+
+  }
+  def read2DMatrix[A:H5Transformation:ClassTag](datasetName:String): Array[Array[A]] ={
 
     import Using._
     import H5Object._
@@ -136,8 +167,46 @@ trait H5DirectionOpsWriter extends H5DirectionOps{
   trait DimMatrix{
     val dimX:Long
     val dimY:Long
+    val dimZ:Long
   }
 
+  def write[A:H5Transformation:ClassTag](a: Array[Array[Array[A]]],datasetName:String): H5DirectionOpsWriter ={
+
+    import  Using._
+    import H5Object._
+
+
+    locW match{
+      case Some(location)=>
+        val F = implicitly[H5Transformation[A]]
+        val  mapping = F.mapping
+
+        val typeInfo = F.getType
+        val h5TypeConverted =  mapping.map(_.typeInfo).getOrElse(typeInfo)
+        val m = implicitly[ClassTag[A]]
+
+
+
+
+
+        val id = obj.seek(location,true)
+
+
+        WriteDataSet(a.flatten.flatten, datasetName, location, mapping, h5TypeConverted,Some(new DimMatrix{
+          val dimX:Long = a.length.toLong
+          val dimY:Long= a.head.length.toLong
+          val dimZ:Long= a.head.head.length.toLong
+        }))
+
+        new H5DirectionOpsWriter {
+          override protected val locW = None
+          override val obj: H5Id = self.obj
+        }
+
+      case _=>
+        throw new Throwable("no location specified")
+    }
+  }
 
   def write[A:H5Transformation:ClassTag](a: Array[Array[A]],datasetName:String): H5DirectionOpsWriter ={
 
@@ -164,6 +233,8 @@ trait H5DirectionOpsWriter extends H5DirectionOps{
         WriteDataSet(a.flatten, datasetName, location, mapping, h5TypeConverted,Some(new DimMatrix{
           val dimX:Long = a.length.toLong
           val dimY:Long= a.head.length.toLong
+          val dimZ:Long = 0
+
         }))
 
         new H5DirectionOpsWriter {
@@ -216,9 +287,9 @@ trait H5DirectionOpsWriter extends H5DirectionOps{
       using(DataSetManagerCreator(obj.fid, location, datasetName, dsp.id, h5TypeConverted)) { dset => {
 
         multiArrayDim.map(d =>{
-          val attr_dataspace_id = H5.H5Screate_simple(2,Array(2L,1L), null)
+          val attr_dataspace_id = H5.H5Screate_simple(2,Array(3L,1L), null)
           val attribute_id = H5.H5Acreate(dset.dataset_id,"size", HDF5Constants.H5T_NATIVE_INT64,attr_dataspace_id,HDF5Constants.H5P_DEFAULT,HDF5Constants.H5P_DEFAULT)
-          H5.H5Awrite(attribute_id, HDF5Constants.H5T_NATIVE_INT64, Array(d.dimX,d.dimY))
+          H5.H5Awrite(attribute_id, HDF5Constants.H5T_NATIVE_INT64, Array(d.dimX,d.dimY,d.dimZ))
           H5.H5Aclose(attribute_id)
           H5.H5Sclose(attr_dataspace_id)
         })
