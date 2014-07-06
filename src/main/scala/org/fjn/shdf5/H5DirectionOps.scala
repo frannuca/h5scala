@@ -1,4 +1,4 @@
-package org.fjn.monad
+package org.fjn.shdf5
 
 import ncsa.hdf.hdf5lib.{HDF5Constants, H5}
 
@@ -18,7 +18,7 @@ trait H5DirectionOps{
   self:H5DirectionOps =>
 
 
-  import org.fjn.monad.CorrectPath._
+  import org.fjn.shdf5.CorrectPath._
 
 
   val obj:H5Id

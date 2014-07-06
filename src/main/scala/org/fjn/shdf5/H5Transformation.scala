@@ -1,4 +1,4 @@
-package org.fjn.monad
+package org.fjn.shdf5
 
 import ncsa.hdf.hdf5lib.{H5, HDF5Constants}
 

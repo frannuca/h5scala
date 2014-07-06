@@ -1,4 +1,4 @@
-package org.fjn.monad
+package org.fjn.shdf5
 
 /**
  * Created by fran on 04/07/2014.
