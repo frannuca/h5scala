@@ -53,7 +53,6 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
 
 
 
-
   "The test should" should "write and read data for" in {
 
 
@@ -77,22 +76,23 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
        obj in "test/array3DofDouble" write(array3DofDoubles, "data")
 
        logger.info("writing array of doubles ...")
-       obj in "/test/general/arrayof/" write(arrayOfDouble, "dsDoubles")
+       val arrayof = obj in "/test/general/arrayof/"
+       arrayof.write(arrayOfDouble, "dsDoubles")
 
        logger.info("writing array of floats ...")
-       obj in "/test/general/arrayof/" write(arrayOfFloat, "dsFloats")
+       arrayof.write(arrayOfFloat, "dsFloats")
 
        logger.info("writing array of Int ...")
-       obj in "/test/general/arrayof/" write(arrayOfInt, "dsIntegers")
+       arrayof.write(arrayOfInt, "dsIntegers")
 
        logger.info("writing array of Long ...")
-       obj in "/test/general/arrayof/" write(arrayOfLong, "dsLongs")
+       arrayof.write(arrayOfLong, "dsLongs")
 
        logger.info("writing array of Char ...")
-       obj in "/test/general/arrayof/" write(arrayOfChar, "dsChars")
+       arrayof.write(arrayOfChar, "dsChars")
 
        logger.info("writing array of Bytes ...")
-       obj in "/test/general/arrayof/" write(arrayOfBytes, "dsBytes")
+       arrayof.write(arrayOfBytes, "dsBytes")
 
        logger.info("closing writing operations")
        obj.close
@@ -110,22 +110,23 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
        val array3DofDoubles2: Array[Array[Array[Double]]] = obj from "test/array3DofDouble" read3DMatrix "data"
 
        logger.info("reading array of doubles ...")
-       val arrayOfDouble2: Array[Double] = obj from "/test/general/arrayof/" read "dsDoubles"
+
+       val arrayOfDouble2: Array[Double] = obj from "/test/general/arrayof/" read1DArray "dsDoubles"
 
        logger.info("reading array of floats ...")
-       val arrayOfFloat2: Array[Float] = obj from "/test/general/arrayof/" read "dsFloats"
+       val arrayOfFloat2: Array[Float] = obj from "/test/general/arrayof/" read1DArray "dsFloats"
 
        logger.info("reading array of Int ...")
-       val arrayOfInt2: Array[Int] = obj from "/test/general/arrayof/" read "dsIntegers"
+       val arrayOfInt2: Array[Int] = obj from "/test/general/arrayof/" read1DArray "dsIntegers"
 
        logger.info("reading array of Int ...")
-       val arrayOfLong2: Array[Long] = obj from "/test/general/arrayof/" read "dsLongs"
+       val arrayOfLong2: Array[Long] = obj from "/test/general/arrayof/" read1DArray "dsLongs"
 
        logger.info("writing array of Char ...")
-       val arrayOfChar2: Array[Char] = obj from "/test/general/arrayof/" read "dsChars"
+       val arrayOfChar2: Array[Char] = obj from "/test/general/arrayof/" read1DArray "dsChars"
 
        logger.info("writing array of Bytes ...")
-       val arrayOfBytes2: Array[Byte] = obj from "/test/general/arrayof/" read "dsBytes"
+       val arrayOfBytes2: Array[Byte] = obj from "/test/general/arrayof/" read1DArray "dsBytes"
 
 
        logger.info("comparing data ...")

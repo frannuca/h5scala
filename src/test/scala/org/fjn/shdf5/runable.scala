@@ -32,9 +32,9 @@ object runable extends App{
     def map[A,B](f:A=>B):M[A]=>M[B]
   }
 
-  implicit object MayBeFunctor extends Functor[MayBe] {
-    def map[A,B](f:A=>B):MayBe[A]=>MayBe[B]= maybe => maybe map f
-  }
+//  implicit object MayBeFunctor extends Functor[MayBe] {
+//    def map[A,B](f:A=>B):MayBe[A]=>MayBe[B]= maybe => maybe map f
+//  }
 
   val rain = Yes(67)
 

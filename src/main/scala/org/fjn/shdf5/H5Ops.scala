@@ -73,7 +73,7 @@ trait H5OpsReader extends H5Ops{
         H5.H5Aread(attr,  HDF5Constants.H5T_NATIVE_INT64,size)
         H5.H5Aclose(attr)
 
-        val retArray: Array[A] = read(datasetName)
+        val retArray: Array[A] = read1DArray(datasetName)
 
         retArray.grouped(size(1).toInt * size(2).toInt).toArray.map(_.grouped(size(2).toInt).toArray)
 
@@ -105,7 +105,7 @@ trait H5OpsReader extends H5Ops{
         H5.H5Aread(attr,  HDF5Constants.H5T_NATIVE_INT64,size)
         H5.H5Aclose(attr)
 
-        val retArray = read(datasetName)
+        val retArray = read1DArray(datasetName)
 
        retArray.grouped(size.last.toInt).toArray
 
@@ -115,13 +115,17 @@ trait H5OpsReader extends H5Ops{
 
   }
 
+
+  def multiple1DRead[A:H5Transformation:ClassTag](datasetName:String*): List[Array[A]] ={
+    datasetName.map(ds => read1DArray[A](ds)).toList
+  }
   /**
    * Read simple array[_] stored in the given location
    * @param datasetName    name of set containing the data
    * @tparam A
    * @return    Array[_] of the elements stored in the dataset
    */
-  def read[A:H5Transformation:ClassTag](datasetName:String): Array[A] ={
+  def read1DArray[A:H5Transformation:ClassTag](datasetName:String): Array[A] ={
 
     import Using._
     import H5Object._
@@ -144,15 +148,24 @@ trait H5OpsReader extends H5Ops{
 
         H5.H5Sget_simple_extent_dims(dspace, dims, null)
 
+
         val dset_data = mapping.map(t => Array.ofDim[Byte](dims(0).toInt)).getOrElse( Array.ofDim[A](dims(0).toInt))
 
-        H5.H5Dread(dataset_id,mapping.map(_.typeInfo).getOrElse(typeInfo),
-          HDF5Constants.H5S_ALL, HDF5Constants.H5S_ALL,
-          HDF5Constants.H5P_DEFAULT, dset_data)
+        try{
+          H5.H5Dread(dataset_id,mapping.map(_.typeInfo).getOrElse(typeInfo),
+            HDF5Constants.H5S_ALL, HDF5Constants.H5S_ALL,
+            HDF5Constants.H5P_DEFAULT, dset_data)
+        }
+        catch{
+          case e:Throwable => throw new Throwable(s"Exception while reading $location.",e)
+        }
 
 
         mapping.map(_.typeInfo).getOrElse(typeInfo) match{
-          case HDF5Constants.H5T_NATIVE_B8 => dset_data.map(_.asInstanceOf[Byte]).map( mapping.get.imap _)
+          case HDF5Constants.H5T_NATIVE_B8 =>
+           //Apply possible implicit transformation that may have been transform other types into Byte
+            dset_data.map(_.asInstanceOf[Byte]).map( mapping.get.imap _)
+
           case _=>    dset_data.map(_.asInstanceOf[A])
 
         }
