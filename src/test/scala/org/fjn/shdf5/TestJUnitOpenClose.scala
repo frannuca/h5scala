@@ -3,16 +3,18 @@ package org.fjn.shdf5
 import java.io.File
 
 import org.apache.log4j.Logger
-import org.junit.Test
-import org.scalatest.junit.AssertionsForJUnit
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.FlatSpec
+import org.scalatest.matchers.ShouldMatchers
 
 
 
 /**
  * Created by fran on 05.07.2014.
  */
-
-class TestJUnitOpenClose extends AssertionsForJUnit{
+@RunWith(classOf[JUnitRunner])
+class TestJUnitOpenClose extends FlatSpec with ShouldMatchers {
 
   val logger = Logger.getLogger(classOf[TestJUnitOpenClose].getName());
 
@@ -26,7 +28,7 @@ class TestJUnitOpenClose extends AssertionsForJUnit{
   }
 
 
-  @Test def OpenClose_CreateClose {
+  "The test should" should "open and close" in {
 
 
     logger.info(s"Starting test for open and close hdf5 file $tempFilePath")

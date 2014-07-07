@@ -13,9 +13,9 @@ import scala.reflect.ClassTag
  * This trait is used as based for writing and reading derived trait. Two methods are injected from this trade depencing on the
  * operation being instanciated: read, write
  */
-trait H5DirectionOps{
+trait H5Ops{
 
-  self:H5DirectionOps =>
+  self:H5Ops =>
 
 
   import org.fjn.shdf5.CorrectPath._
@@ -30,7 +30,7 @@ trait H5DirectionOps{
    * @param location  path to the place where we want to write
    * @return H5MonadOpsWriter where to apply the method write
    */
-  def in(location:String)=new H5DirectionOpsWriter{
+  def in(location:String)=new H5OpsWriter{
     val locW = Some(location.toCorrectedH5Path)
     val obj = self.obj
 
@@ -39,9 +39,9 @@ trait H5DirectionOps{
   /**
    * places the internal path reference to the place where to read data from
    * @param location  full path till the folder containing the dataset to be read
-   * @return    H5MonadOpsReader where to apply the method read
+   * @return    H5OpsReader where to apply the method read
    */
-  def from(location:String)=new H5DirectionOpsReader{
+  def from(location:String)=new H5OpsReader{
     val locW = Some(location.toCorrectedH5Path)
     val obj = self.obj
   }
@@ -51,7 +51,7 @@ trait H5DirectionOps{
 /**
  * Reading operations from the hdf5 file. This trait specialized the general Operation trait with a new read method
  */
-trait H5DirectionOpsReader extends H5DirectionOps{
+trait H5OpsReader extends H5Ops{
 
   def read3DMatrix[A:H5Transformation:ClassTag](datasetName:String): Array[Array[Array[A]]] ={
 
@@ -84,6 +84,7 @@ trait H5DirectionOpsReader extends H5DirectionOps{
     }
 
   }
+
   def read2DMatrix[A:H5Transformation:ClassTag](datasetName:String): Array[Array[A]] ={
 
     import Using._
@@ -98,7 +99,7 @@ trait H5DirectionOpsReader extends H5DirectionOps{
         val typeInfo = F.getType
         val dataset_id = obj.getDatasetId(location,datasetName)
 
-        //Get dimenstion for the matrix:
+        //Get dimensions for the matrix:
         val attr = H5.H5Aopen(dataset_id,"size",HDF5Constants.H5P_DEFAULT)
         val size = Array.ofDim[Long](2);
         H5.H5Aread(attr,  HDF5Constants.H5T_NATIVE_INT64,size)
@@ -113,6 +114,13 @@ trait H5DirectionOpsReader extends H5DirectionOps{
     }
 
   }
+
+  /**
+   * Read simple array[_] stored in the given location
+   * @param datasetName    name of set containing the data
+   * @tparam A
+   * @return    Array[_] of the elements stored in the dataset
+   */
   def read[A:H5Transformation:ClassTag](datasetName:String): Array[A] ={
 
     import Using._
@@ -159,9 +167,9 @@ trait H5DirectionOpsReader extends H5DirectionOps{
 /**
  * Reading operations from the hdf5 file. This trait specialized the general Operation trait with a new write method
  */
-trait H5DirectionOpsWriter extends H5DirectionOps{
+trait H5OpsWriter extends H5Ops{
 
-  self:H5DirectionOps =>
+  self:H5Ops =>
 
 
   trait DimMatrix{
@@ -170,7 +178,7 @@ trait H5DirectionOpsWriter extends H5DirectionOps{
     val dimZ:Long
   }
 
-  def write[A:H5Transformation:ClassTag](a: Array[Array[Array[A]]],datasetName:String): H5DirectionOpsWriter ={
+  def write[A:H5Transformation:ClassTag](a: Array[Array[Array[A]]],datasetName:String): H5OpsWriter ={
 
     import  Using._
     import H5Object._
@@ -198,7 +206,7 @@ trait H5DirectionOpsWriter extends H5DirectionOps{
           val dimZ:Long= a.head.head.length.toLong
         }))
 
-        new H5DirectionOpsWriter {
+        new H5OpsWriter {
           override protected val locW = None
           override val obj: H5Id = self.obj
         }
@@ -208,7 +216,7 @@ trait H5DirectionOpsWriter extends H5DirectionOps{
     }
   }
 
-  def write[A:H5Transformation:ClassTag](a: Array[Array[A]],datasetName:String): H5DirectionOpsWriter ={
+  def write[A:H5Transformation:ClassTag](a: Array[Array[A]],datasetName:String): H5OpsWriter ={
 
     import  Using._
     import H5Object._
@@ -237,7 +245,7 @@ trait H5DirectionOpsWriter extends H5DirectionOps{
 
         }))
 
-        new H5DirectionOpsWriter {
+        new H5OpsWriter {
           override protected val locW = None
           override val obj: H5Id = self.obj
         }
@@ -270,7 +278,7 @@ trait H5DirectionOpsWriter extends H5DirectionOps{
 
         WriteDataSet(a, datasetName, location, mapping, h5TypeConverted,None)
 
-        new H5DirectionOpsWriter {
+        new H5OpsWriter {
           override protected val locW = None
           override val obj: H5Id = self.obj
         }

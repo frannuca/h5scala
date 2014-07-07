@@ -4,15 +4,17 @@ import java.io.File
 
 
 import org.apache.log4j.Logger
-import org.junit.Test
+import org.junit.runner.RunWith
 import org.junit.Assert.{assertEquals, assertArrayEquals}
-import org.scalatest.junit.{AssertionsForJUnit, JUnitRunner}
+import org.scalatest.FlatSpec
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.matchers.ShouldMatchers
 
 /**
  * Created by fran on 05.07.2014.
  */
-
-class TestWritingReading  extends AssertionsForJUnit {
+@RunWith(classOf[JUnitRunner])
+class TestWritingReading  extends FlatSpec with ShouldMatchers{
 
   val logger = Logger.getLogger(classOf[TestWritingReading].getName());
 
@@ -52,10 +54,10 @@ class TestWritingReading  extends AssertionsForJUnit {
 
 
 
-   @Test def readWriteTypes {
+  "The test should" should "write and read data for" in {
 
 
-     try {
+
        logger.info(s"Starting test for open and close hdf5 file $tempFilePath")
 
        val obj: H5Object = H5Object(tempFilePath)
@@ -137,7 +139,6 @@ class TestWritingReading  extends AssertionsForJUnit {
 
        array3DofDoubles.indices.foreach(i => {
          array3DofDoubles(i).indices.foreach(j => {
-           logger.info(s"doing $i , $j ")
            assertEquals("Failed to recover array of Doubles", (array3DofDoubles(i)(j) zip array3DofDoubles2(i)(j)).map(x => x._1 - x._2).fold(0.0d)(_ + _), 0.0d, 0.0d)
          })
        })
@@ -153,10 +154,7 @@ class TestWritingReading  extends AssertionsForJUnit {
 
        logger.info("closing reading operations")
        obj.close
-     }
-     catch{
-       case e=> logger.error(e.getStackTraceString); throw e
-     }
+
   }
 
 }

@@ -83,9 +83,9 @@ object H5Object {
    * @param x
    * @return H5MonadOps base class without location
    */
-  implicit def H5Mondad2Typed(x: H5Object): H5DirectionOps = {
+  implicit def H5Mondad2Typed(x: H5Object): H5Ops = {
 
-    new H5DirectionOps {
+    new H5Ops {
       override val obj: H5Id = x.open
       override val locW = None
     }
