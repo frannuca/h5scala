@@ -10,13 +10,17 @@ import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.matchers.ShouldMatchers
 
+
+
+//TODO: expose writing attributes as Array({name:value}) cover long,double, string
+//TODO: do array of string as 1D first and if time 2D matrices
 /**
  * Created by fran on 05.07.2014.
  */
 @RunWith(classOf[JUnitRunner])
 class TestWritingReading  extends FlatSpec with ShouldMatchers{
 
-  val logger = Logger.getLogger(classOf[TestWritingReading].getName());
+  val logger = Logger.getLogger(classOf[TestWritingReading].getName())
 
 
   lazy val tempFilePath = {
@@ -43,12 +47,14 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
     }).toArray
   }).toArray
 
-  val arrayOfDouble: Array[Double] =  Array.ofDim[Double](1000).transform(_ => rngGen.nextDouble()).toArray
-  val arrayOfFloat:  Array[Float]  =  Array.ofDim[Float](1000).transform(_ => rngGen.nextFloat()) .toArray
-  val arrayOfInt:    Array[Int]    =  Array.ofDim[Int](1000).transform(_ => rngGen.nextInt(Int.MaxValue)) .toArray
-  val arrayOfLong:   Array[Long]   =  Array.ofDim[Long](1000).transform(_ => rngGen.nextLong()) .toArray
-  val arrayOfChar:   Array[Char]   =  Array.ofDim[Char](1000).transform(_ => 'a').toArray
-  val arrayOfBytes:  Array[Byte]   =  Array.ofDim[Byte](1000); rngGen.nextBytes(arrayOfBytes)
+  val arrayOfDouble =  Array(Array.ofDim[Double](1000).transform(_ => rngGen.nextDouble()).toArray)
+  val arrayOfFloat  =  Array(Array.ofDim[Float](1000).transform(_ => rngGen.nextFloat()) .toArray)
+  val arrayOfInt   =  Array(Array.ofDim[Int](1000).transform(_ => rngGen.nextInt(Int.MaxValue)) .toArray)
+  val arrayOfLong   =  Array(Array.ofDim[Long](1000).transform(_ => rngGen.nextLong()) .toArray)
+  val arrayOfBytes0   = Array.ofDim[Byte](1000); rngGen.nextBytes(arrayOfBytes0);
+  val arrayOfBytes = Array(arrayOfBytes0)
+  val arrayOfStrings = Array("This is the first","This is the second","And the last but not least the third--->>>>>Yes")
+
 
 
 
@@ -67,32 +73,33 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
        logger.info(s"new file created with root id ${h.fid} ")
 
 
-
-       logger.info("writing array of array ...")
-       obj in "test/arrayofarray" write(arrayOfArrayDouble, "data")
-
-
-       logger.info("writing a 3d matrix ...")
-       obj in "test/array3DofDouble" write(array3DofDoubles, "data")
+       logger.info("writing and array of strings")
+       obj in "/test/strings" writeString(arrayOfStrings,"data")
+       //obj in "test/strings"  writeAttr ("test/strings",("attrf",1105f))
 
        logger.info("writing array of doubles ...")
        val arrayof = obj in "/test/general/arrayof/"
-       arrayof.write(arrayOfDouble, "dsDoubles")
 
-       logger.info("writing array of floats ...")
-       arrayof.write(arrayOfFloat, "dsFloats")
 
-       logger.info("writing array of Int ...")
+//
+       logger.info("writing array of doubles ...")
+    arrayof.write(arrayOfDouble, "dsDoubles")
+
+    logger.info("writing array of floats ...")
+    arrayof.write(arrayOfFloat, "dsFloats")
+
+
+    logger.info("writing array of Int ...")
        arrayof.write(arrayOfInt, "dsIntegers")
 
        logger.info("writing array of Long ...")
        arrayof.write(arrayOfLong, "dsLongs")
 
-       logger.info("writing array of Char ...")
-       arrayof.write(arrayOfChar, "dsChars")
 
        logger.info("writing array of Bytes ...")
        arrayof.write(arrayOfBytes, "dsBytes")
+
+
 
        logger.info("closing writing operations")
        obj.close
@@ -102,54 +109,36 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
        obj.open
 
 
-       logger.info("reading array of array of doubles ...")
-       val arrayOfArrayDouble2: Array[Array[Double]] = obj from "test/arrayofarray" read2DMatrix "data"
 
 
-       logger.info("reading 3d matrix of doubles ...")
-       val array3DofDoubles2: Array[Array[Array[Double]]] = obj from "test/array3DofDouble" read3DMatrix "data"
-
+      logger.info("reading array of strings")
+      val arrayOfStrings2 = obj from "test/strings" readString ("data")
        logger.info("reading array of doubles ...")
 
-       val arrayOfDouble2: Array[Double] = obj from "/test/general/arrayof/" read1DArray "dsDoubles"
-
+       val arrayOfDouble2: Array[Array[Double]] = obj from "/test/general/arrayof/" read "dsDoubles"
+//
        logger.info("reading array of floats ...")
-       val arrayOfFloat2: Array[Float] = obj from "/test/general/arrayof/" read1DArray "dsFloats"
+       val arrayOfFloat2: Array[Array[Float]] = obj from "/test/general/arrayof/" read "dsFloats"
 
        logger.info("reading array of Int ...")
-       val arrayOfInt2: Array[Int] = obj from "/test/general/arrayof/" read1DArray "dsIntegers"
+       val arrayOfInt2: Array[Array[Int]] = obj from "/test/general/arrayof/" read "dsIntegers"
 
-       logger.info("reading array of Int ...")
-       val arrayOfLong2: Array[Long] = obj from "/test/general/arrayof/" read1DArray "dsLongs"
+       logger.info("reading array of Longs ...")
+       val arrayOfLong2: Array[Array[Long]] = obj from "/test/general/arrayof/" read "dsLongs"
 
-       logger.info("writing array of Char ...")
-       val arrayOfChar2: Array[Char] = obj from "/test/general/arrayof/" read1DArray "dsChars"
-
+//
        logger.info("writing array of Bytes ...")
-       val arrayOfBytes2: Array[Byte] = obj from "/test/general/arrayof/" read1DArray "dsBytes"
+       val arrayOfBytes2: Array[Array[Byte]] = obj from "/test/general/arrayof/" read "dsBytes"
 
 
        logger.info("comparing data ...")
 
 
-
-       arrayOfArrayDouble.indices.foreach(i => {
-
-         assertEquals("Failed to recover array of Doubles", (arrayOfArrayDouble(i) zip arrayOfArrayDouble2(i)).map(x => x._1 - x._2).fold(0.0d)(_ + _), 0.0d, 0.0d)
-       })
-
-       array3DofDoubles.indices.foreach(i => {
-         array3DofDoubles(i).indices.foreach(j => {
-           assertEquals("Failed to recover array of Doubles", (array3DofDoubles(i)(j) zip array3DofDoubles2(i)(j)).map(x => x._1 - x._2).fold(0.0d)(_ + _), 0.0d, 0.0d)
-         })
-       })
-
-       assertEquals("Failed to recover array of Doubles", (arrayOfDouble zip arrayOfDouble2).map(x => x._1 - x._2).fold(0.0d)(_ + _), 0.0d, 0.0d)
-       assertEquals("Failed to recover array of Floats", (arrayOfFloat zip arrayOfFloat2).map(x => x._1 - x._2).fold(0.0f)(_ + _), 0.0f, 0.0f)
-       assertEquals("Failed to recover array of Integers", (arrayOfInt zip arrayOfInt2).map(x => x._1 - x._2).fold(0)(_ + _), 0)
-       assertEquals("Failed to recover array of Long", (arrayOfLong zip arrayOfLong2).map(x => x._1 - x._2).fold(0L)(_ + _), 0)
-       assertEquals("Failed to recover array of Char", (arrayOfChar zip arrayOfChar2).map(x => x._1.toInt - x._2.toInt).fold(0)(_ + _), 0)
-       assertArrayEquals("Failed to recover array of Bytes", arrayOfBytes, arrayOfBytes2)
+      assertEquals("Failed to recover array of Doubles", (arrayOfDouble.head zip arrayOfDouble2.head).map(x => x._1 - x._2).fold(0.0d)(_ + _), 0.0d, 0.0d)
+      assertEquals("Failed to recover array of Floats", (arrayOfFloat.head zip arrayOfFloat2.head).map(x => x._1 - x._2).fold(0.0f)(_ + _), 0.0f, 0.0f)
+      assertEquals("Failed to recover array of Integers", (arrayOfInt.head zip arrayOfInt2.head).map(x => x._1 - x._2).fold(0)(_ + _), 0)
+      assertEquals("Failed to recover array of Long", (arrayOfLong.head zip arrayOfLong2.head).map(x => x._1 - x._2).fold(0L)(_ + _), 0)
+      assertArrayEquals("Failed to recover array of Bytes", arrayOfBytes.head, arrayOfBytes2.head)
 
        logger.info("success!!!")
 

@@ -61,14 +61,14 @@ trait H5Id{
    * given the path to a given group and a dataset name inside the group it returns the associate internal id of the dataset
    * @param path group path with '/' separators. i.e: "/series/SWX"
    * @param datasetName name of the dataset. i.e "window1"
-   * @return
+   * @return  tuple with (group id, dataset id)
    */
   def getDatasetId(path:String,datasetName:String)={
 
-
     val gid = H5.H5Gopen(fid,path)
 
-    H5.H5Dopen(gid,datasetName)
+    (gid,H5.H5Dopen(gid,datasetName))
+
   }
 
 }

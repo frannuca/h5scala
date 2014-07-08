@@ -8,13 +8,21 @@ import ncsa.hdf.hdf5lib.H5
 
 /**
  * Helper class to define the space and type allocation of the data to be transferred
- * @param dimX   first dimension
- * @param dimY   second dimension
- */
-case class DataSpaceManager(dimX:Long,dimY:Long){
 
-  val id = H5.H5Screate_simple(2, Array(dimX,dimY), Array(dimX,dimY))
+ */
+case class DataSpaceManager(dims:Array[Long]){
+
+  val id = H5.H5Screate_simple(dims.length,dims,null)
 
   def close(){
-    H5.H5Sclose(id)}
+    H5.H5Sclose(id)
+    }
+}
+case class DataSpaceManager4String(dims:Array[Long]){
+
+  val id = H5.H5Screate_simple(1,dims,null)
+
+def close(){
+  H5.H5Sclose(id)
+  }
 }
