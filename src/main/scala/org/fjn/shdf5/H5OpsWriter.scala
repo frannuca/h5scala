@@ -35,6 +35,7 @@ trait H5OpsWriter extends H5Ops{
 
   def withGroupAttribute[AT1:H5Transformation:ClassTag:TypeTag](name:String,value:AT1)={
 
+
     def f(sid:Int)={
 
       writeGroupAttribute[AT1]((name,value))
@@ -139,6 +140,9 @@ trait H5OpsWriter extends H5Ops{
 
 
   def write[A:H5Transformation:ClassTag:TypeTag](a: Array[Array[A]]){
+
+
+    attributeFunctions4Groups(0)
     ru.typeOf[A] match{
       case t if t =:= ru.typeOf[String] =>     writeString(a.head.map(_.toString))
       case t => writeBase(a)

@@ -89,7 +89,13 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
         .withDatasetAttribute("attrstr",attrstr)
          .withDatasetAttribute("attrL",attrL)
          .withDatasetAttribute("attrI",attrI)
+         .withGroupAttribute("attrd",attrf)
+         .withGroupAttribute("attrf",attrf)
+         .withGroupAttribute("attrstr",attrstr)
+         .withGroupAttribute("attrL",attrL)
+         .withGroupAttribute("attrI",attrI)
         .write(arrayOfStrings)
+
 
 
       obj.ingroup("/test/numeric")
@@ -131,8 +137,8 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
         obj.close
 
 
-        obj.open
 
+    obj.open
 
     {
       val arrayOfStrings2 = obj.fromgroup("/test/strings").readString("ds1")
@@ -181,6 +187,29 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
       assertEquals("Comparing attribute Int",obj.fromgroup("/test/numeric").readDataAttribute[Int]("ds4", "attrI"), attrI)
       assertEquals("Failed to recover array of floats", (arrayOfBytes.head zip arrayOfBytes2.head).map(x => x._1.toInt - x._2.toInt).fold(0)(_ + _), 0, 0)
     }
+
+
+    obj.close
+
+    obj.openRW
+
+    {
+      obj.ingroup("/test/strings2")
+        .withDataSet("ds1")
+        .withDatasetAttribute("attrd",attrf)
+        .withDatasetAttribute("attrf",attrf)
+        .withDatasetAttribute("attrstr",attrstr)
+        .withDatasetAttribute("attrL",attrL)
+        .withDatasetAttribute("attrI",attrI)
+        .withGroupAttribute("attrd",attrf)
+        .withGroupAttribute("attrf",attrf)
+        .withGroupAttribute("attrstr",attrstr)
+        .withGroupAttribute("attrL",attrL)
+        .withGroupAttribute("attrI",attrI)
+        .write(arrayOfStrings)
+    }
+
+    obj.close
 
 //      assertEquals("Failed to recover array of Doubles", (arrayOfDouble.head zip arrayOfDouble2.head).map(x => x._1 - x._2).fold(0.0d)(_ + _), 0.0d, 0.0d)
 //      assertEquals("Failed to recover array of Floats", (arrayOfFloat.head zip arrayOfFloat2.head).map(x => x._1 - x._2).fold(0.0f)(_ + _), 0.0f, 0.0f)
