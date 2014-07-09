@@ -48,11 +48,29 @@ trait H5Object {
   }
 
   /**
+   * Allow read-only access to file.
+   * @return   a simple H5Id instance containing the internal h5 internal file description for the root node
+   */
+  def openRW = {
+    if (fileId.isEmpty) {
+
+
+      val faplist_id = H5.H5Pcreate (HDF5Constants.H5P_FILE_ACCESS)
+      fileId = Some(H5.H5Fopen (filePath, HDF5Constants.H5F_ACC_RDWR, faplist_id))
+    }
+    new H5Id {
+      val fid = fileId.getOrElse(-1)
+    }
+  }
+
+  /**
    * Closes the file and removes the internal file descriptor is have been set before.
    * It is allowed to reopen or re-create the file once it has been closed
    */
   def close {
-    fileId.foreach(H5.H5Fclose(_))
+    if(fileId.isDefined)
+      H5.H5Fclose(fileId.get)
+
     fileId = None
   }
 
