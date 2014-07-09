@@ -9,8 +9,10 @@ import ncsa.hdf.hdf5lib.{H5, HDF5Constants}
  * @tparam A
  */
 
-trait H5Transformation[A] {
+trait H5TransformationBase{
   def getType: Int
+}
+trait H5Transformation[A] extends H5TransformationBase{
 }
 
 object H5Transformation {

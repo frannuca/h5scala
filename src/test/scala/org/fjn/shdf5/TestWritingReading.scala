@@ -74,8 +74,11 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
 
 
        logger.info("writing and array of strings")
-       obj in "/test/strings" writeString(arrayOfStrings,"data")
-       //obj in "test/strings"  writeAttr ("test/strings",("attrf",1105f))
+    val a: Array[Array[String]] = Array(arrayOfStrings)
+       obj in "/test/strings" writeGroupAttribute (("mygroupLongAttr1",121L),("mygroupStringAttr1","small step for man, huge leap for humanitz"))
+       obj in "/test/strings" write(a,"data",("myDouble",32.9),("myString","Meaning of life and universe is 42"))
+
+       obj in "/test/general/arrayof/" writeGroupAttribute(("Groupd attr1",3897.0))
 
        logger.info("writing array of doubles ...")
        val arrayof = obj in "/test/general/arrayof/"
@@ -83,7 +86,7 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
 
 //
        logger.info("writing array of doubles ...")
-    arrayof.write(arrayOfDouble, "dsDoubles")
+    arrayof.write(arrayOfDouble, "dsDoubles",("the meaning of life and universe",42L),("The Pi as float",3.14f),("The Pi as double",3.14d))
 
     logger.info("writing array of floats ...")
     arrayof.write(arrayOfFloat, "dsFloats")
@@ -109,16 +112,14 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
        obj.open
 
 
-
-
       logger.info("reading array of strings")
-      val arrayOfStrings2 = obj from "test/strings" readString ("data")
+      val arrayOfStrings2 = obj from "test/strings" readString("data")
        logger.info("reading array of doubles ...")
 
-       val arrayOfDouble2: Array[Array[Double]] = obj from "/test/general/arrayof/" read "dsDoubles"
+       val arrayOfDouble2:Array[Array[Double]] = obj from "/test/general/arrayof/" read("dsDoubles")
 //
        logger.info("reading array of floats ...")
-       val arrayOfFloat2: Array[Array[Float]] = obj from "/test/general/arrayof/" read "dsFloats"
+       val arrayOfFloat2:Array[Array[Float]] = obj from "/test/general/arrayof/" read "dsFloats"
 
        logger.info("reading array of Int ...")
        val arrayOfInt2: Array[Array[Int]] = obj from "/test/general/arrayof/" read "dsIntegers"
@@ -131,8 +132,15 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
        val arrayOfBytes2: Array[Array[Byte]] = obj from "/test/general/arrayof/" read "dsBytes"
 
 
+    logger.info("getting attributes")
+    val attr1 = obj.from("/test/general/arrayof/").readAttribute[Double](None,"Groupd attr1")
+
+
+    val attr2 = obj.from("/test/general/arrayof/").readAttribute[Float](Some("dsDoubles"),"The Pi as float")
        logger.info("comparing data ...")
 
+
+    val attr3 =  obj.from("/test/strings").readAttribute[String](Some("data"),"myString")
 
       assertEquals("Failed to recover array of Doubles", (arrayOfDouble.head zip arrayOfDouble2.head).map(x => x._1 - x._2).fold(0.0d)(_ + _), 0.0d, 0.0d)
       assertEquals("Failed to recover array of Floats", (arrayOfFloat.head zip arrayOfFloat2.head).map(x => x._1 - x._2).fold(0.0f)(_ + _), 0.0f, 0.0f)

@@ -21,7 +21,7 @@ trait H5Id{
    * @param createOntheFly if set to true any group non existent in the file but specified in the path will be created
    * @return return the internal identifier of the provided position
    */
-  def seek(path0:String,createOntheFly:Boolean): Int ={
+  def seek(path0:String,createOntheFly:Boolean)(fgroupAttribute:(Int)=>Unit): Int ={
 
     val path = if(path0.last == '/')
                   path0.init
@@ -50,6 +50,7 @@ trait H5Id{
     val partialPath = new ListBuffer[String]
     val gid = seekInternal(fid,path.split("/").filter(!_.isEmpty).toList,ids,partialPath)
 
+    fgroupAttribute(gid)
     ids.reverse.foreach(q =>
       H5.H5Gclose(q)
     )
@@ -65,9 +66,9 @@ trait H5Id{
    */
   def getDatasetId(path:String,datasetName:String)={
 
-    val gid = H5.H5Gopen(fid,path)
+    val gid = H5.H5Gopen(fid,path,HDF5Constants.H5P_DEFAULT)
 
-    (gid,H5.H5Dopen(gid,datasetName))
+    (gid,H5.H5Dopen(gid,datasetName,HDF5Constants.H5P_DEFAULT))
 
   }
 
