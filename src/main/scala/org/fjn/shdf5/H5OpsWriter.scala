@@ -143,10 +143,11 @@ trait H5OpsWriter extends H5Ops{
 
 
     attributeFunctions4Groups(0)
-    ru.typeOf[A] match{
-      case t if t =:= ru.typeOf[String] =>     writeString(a.head.map(_.toString))
-      case t => writeBase(a)
-    }
+    if(!a.isEmpty)
+      ru.typeOf[A] match{
+        case t if t =:= ru.typeOf[String] =>     writeString(a.head.map(_.toString))
+        case t => writeBase(a)
+      }
   }
 
   private def writeBase[A:H5Transformation:ClassTag:TypeTag](a: Array[Array[A]]){

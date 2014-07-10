@@ -14,7 +14,7 @@ trait H5OpsReader extends H5Ops{
        readAttribute(Some(datasetname),attributeName)
   }
 
-  def readGroupAttribute[A:H5Transformation:ClassTag:ru.TypeTag](datasetname:String,attributeName:String):A={
+  def readGroupAttribute[A:H5Transformation:ClassTag:ru.TypeTag](attributeName:String):A={
     readAttribute(None,attributeName)
   }
 
@@ -50,15 +50,18 @@ trait H5OpsReader extends H5Ops{
 
 
       H5.H5Aclose(attribute_id)
-      if(datasetName.isDefined)
+      if(datasetName.isDefined){
         H5.H5Dclose(dataset_id)
+        H5.H5Sclose(dataspace_id)
+      }
       else
         H5.H5Gclose(dataset_id)
 
-      H5.H5Sclose(dataspace_id)
 
       if(group_id>0)
         H5.H5Gclose(group_id)
+
+
 
 
       dset_data.headOption.getOrElse(throw new Throwable("invalid attribute"))

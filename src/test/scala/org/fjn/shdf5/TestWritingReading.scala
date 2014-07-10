@@ -8,17 +8,16 @@ import org.junit.runner.RunWith
 import org.junit.Assert.{assertEquals, assertArrayEquals}
 import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.matchers.ShouldMatchers
+
+import scala.reflect.ClassTag
+import scala.reflect.runtime._
 
 
-
-//TODO: expose writing attributes as Array({name:value}) cover long,double, string
-//TODO: do array of string as 1D first and if time 2D matrices
 /**
  * Created by fran on 05.07.2014.
  */
 @RunWith(classOf[JUnitRunner])
-class TestWritingReading  extends FlatSpec with ShouldMatchers{
+class TestWritingReading  extends FlatSpec with org.scalatest.Matchers{
 
   val logger = Logger.getLogger(classOf[TestWritingReading].getName())
 
@@ -47,13 +46,19 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
     }).toArray
   }).toArray
 
-  val arrayOfDouble =  Array(Array.ofDim[Double](1000).transform(_ => rngGen.nextDouble()).toArray)
-  val arrayOfFloat  =  Array(Array.ofDim[Float](1000).transform(_ => rngGen.nextFloat()) .toArray)
-  val arrayOfInt   =  Array(Array.ofDim[Int](1000).transform(_ => rngGen.nextInt(Int.MaxValue)) .toArray)
-  val arrayOfLong   =  Array(Array.ofDim[Long](1000).transform(_ => rngGen.nextLong()) .toArray)
-  val arrayOfBytes0   = Array.ofDim[Byte](1000); rngGen.nextBytes(arrayOfBytes0);
-  val arrayOfBytes = Array(arrayOfBytes0)
+  import RandomMatrixGenerators._
+
+  val arrayOfDouble =  createMatrixOf[Double](300,3000)
+  val arrayOfFloat  =  createMatrixOf[Float](1,300)
+  val arrayOfInt   =   createMatrixOf[Int](150,300)
+  val arrayOfLong   =  createMatrixOf[Long](200,300)
+  val arrayOfBytes   = createMatrixOf[Byte](200,300)
   val arrayOfStrings = Array(Array("This is the first","This is the second","And the last but not least the third--->>>>>Yes"))
+  val attrd = 1.0d
+  val attrf = 2.0f
+  val attrstr= "XXX"
+  val attrL = 1L
+  val attrI = 3
 
 
 
@@ -69,6 +74,7 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
 
 
        logger.info("creating new file ...")
+
        val h = obj.create
        logger.info(s"new file created with root id ${h.fid} ")
 
@@ -76,115 +82,97 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
        logger.info("writing and array of strings")
 
 
-       val attrd = 1.0d;
-       val attrf = 1.0f;
-       val attrstr= "string attribute"
-       val attrL = 1L
-       val attrI = 1
-
-       obj.ingroup("/test/strings")
-        .withDataSet("ds1")
-        .withDatasetAttribute("attrd",attrf)
-        .withDatasetAttribute("attrf",attrf)
-        .withDatasetAttribute("attrstr",attrstr)
-         .withDatasetAttribute("attrL",attrL)
-         .withDatasetAttribute("attrI",attrI)
-         .withGroupAttribute("attrd",attrf)
-         .withGroupAttribute("attrf",attrf)
-         .withGroupAttribute("attrstr",attrstr)
-         .withGroupAttribute("attrL",attrL)
-         .withGroupAttribute("attrI",attrI)
-        .write(arrayOfStrings)
 
 
-
-      obj.ingroup("/test/numeric")
-        .withDataSet("ds1")
+    def writeHelper(place:String,dsStr:String)={
+      obj.ingroup(place)
+        .withDataSet(dsStr)
         .withDatasetAttribute("attrd",attrf)
         .withDatasetAttribute("attrf",attrf)
         .withDatasetAttribute("attrstr",attrstr)
         .withDatasetAttribute("attrL",attrL)
         .withDatasetAttribute("attrI",attrI)
-        .write(arrayOfDouble)
+    }
 
-      obj.ingroup("/test/numeric")
-        .withDataSet("ds2")
-        .withDatasetAttribute("attrd",attrf)
-        .withDatasetAttribute("attrf",attrf)
-        .withDatasetAttribute("attrstr",attrstr)
-        .withDatasetAttribute("attrL",attrL)
-        .withDatasetAttribute("attrI",attrI)
-        .write(arrayOfFloat)
 
-    obj.ingroup("/test/numeric")
-      .withDataSet("ds3")
-      .withDatasetAttribute("attrd",attrf)
-      .withDatasetAttribute("attrf",attrf)
-      .withDatasetAttribute("attrstr",attrstr)
-      .withDatasetAttribute("attrL",attrL)
-      .withDatasetAttribute("attrI",attrI)
-      .write(arrayOfLong)
+    writeHelper("/test/arrayOfStrings","ds1")
+      .withGroupAttribute("attrd",attrf)
+      .withGroupAttribute("attrf",attrf)
+      .withGroupAttribute("attrstr",attrstr)
+      .withGroupAttribute("attrL",attrL)
+      .withGroupAttribute("attrI",attrI).write[String](arrayOfStrings)
 
-     obj.ingroup("/test/numeric")
-      .withDataSet("ds4")
-      .withDatasetAttribute("attrd",attrf)
-      .withDatasetAttribute("attrf",attrf)
-      .withDatasetAttribute("attrstr",attrstr)
-      .withDatasetAttribute("attrL",attrL)
-      .withDatasetAttribute("attrI",attrI)
-      .write(arrayOfBytes)
+    writeHelper("/test/numeric","dsD")
+      .withGroupAttribute("attrd",attrd)
+      .withGroupAttribute("attrf",attrf)
+      .withGroupAttribute("attrstr",attrstr)
+      .withGroupAttribute("attrL",attrL)
+      .withGroupAttribute("attrI",attrI).write[Double](arrayOfDouble)
 
-        obj.close
+    writeHelper("/test/numeric","dsF").write[Float](arrayOfFloat)
 
+    writeHelper("/test/numeric","dsL").write[Long](arrayOfLong)
+
+    writeHelper("/test/numeric","dsB").write[Byte](arrayOfBytes)
+
+    obj.close
+
+
+
+
+    def readHelperAttribute[A:H5Transformation:ClassTag:universe.TypeTag](place:String,dsStr:String,attrName:String)={
+      obj.fromgroup(place).readDataAttribute[A](dsStr, "attrd")
+    }
 
 
     obj.open
 
     {
-      val arrayOfStrings2 = obj.fromgroup("/test/strings").readString("ds1")
-      val attrd_ = obj.fromgroup("/test/strings").readDataAttribute[Double]("ds1", "attrd")
-      val attrf_ = obj.fromgroup("/test/strings").readDataAttribute[Float]("ds1", "attrf")
-      val attrstr_ = obj.fromgroup("/test/strings").readDataAttribute[String]("ds1", "attrstr")
-      val attrL_ = obj.fromgroup("/test/strings").readDataAttribute[Long]("ds1", "attrL")
-      val attrI_ = obj.fromgroup("/test/strings").readDataAttribute[Int]("ds1", "attrI")
+      val arrayOfStrings2 = obj.fromgroup("/test/arrayOfStrings").readString("ds1")
+      val attrf_ = obj.fromgroup("/test/arrayOfStrings").readDataAttribute[Float]("ds1", "attrf")
+      val attrstr_ = obj.fromgroup("/test/arrayOfStrings").readDataAttribute[String]("ds1", "attrstr")
+      val attrL_ = obj.fromgroup("/test/arrayOfStrings").readDataAttribute[Long]("ds1", "attrL")
+      val attrI_ = obj.fromgroup("/test/arrayOfStrings").readDataAttribute[Int]("ds1", "attrI")
       assertEquals("Failed to recover array of Strings", (arrayOfStrings.head zip arrayOfStrings2).map(x => if (x._1 != x._2) 1.0 else 0.0).fold(0.0d)(_ + _), 0.0d, 0.0d)
     }
     {
-      val arrayOfDouble2 = obj.fromgroup("/test/numeric").readNumeric[Double]("ds1")
-      val attrd_ = obj.fromgroup("/test/strings").readDataAttribute[Double]("ds1", "attrd")
-      val attrf_ = obj.fromgroup("/test/strings").readDataAttribute[Float]("ds1", "attrf")
-      val attrstr_ = obj.fromgroup("/test/strings").readDataAttribute[String]("ds1", "attrstr")
-      val attrL_ = obj.fromgroup("/test/strings").readDataAttribute[Long]("ds1", "attrL")
-      val attrI_ = obj.fromgroup("/test/strings").readDataAttribute[Int]("ds1", "attrI")
+      val arrayOfDouble2 = obj.fromgroup("/test/numeric").readNumeric[Double]("dsD")
+      val attrd_ = obj.fromgroup("/test/numeric").readDataAttribute[Double]("dsD", "attrd")
+      val attrf_ = obj.fromgroup("/test/numeric").readDataAttribute[Float]("dsD", "attrf")
+      val attrstr_ = obj.fromgroup("/test/numeric").readDataAttribute[String]("dsD", "attrstr")
+      val attrL_ = obj.fromgroup("/test/numeric").readDataAttribute[Long]("dsD", "attrL")
+      val attrI_ = obj.fromgroup("/test/numeric").readDataAttribute[Int]("dsD", "attrI")
       assertEquals("Failed to recover array of doubles", (arrayOfDouble.head zip arrayOfDouble2.head).map(x => x._1 - x._2).fold(0.0d)(_ + _), 0.0d, 0.0d)
     }
 
     {
-      val arrayOfFloat2 = obj.fromgroup("/test/numeric").readNumeric[Float]("ds2")
-      val attrd_ = obj.fromgroup("/test/numeric").readDataAttribute[Double]("ds2", "attrd")
-      val attrf_ = obj.fromgroup("/test/numeric").readDataAttribute[Float]("ds2", "attrf")
-      val attrstr_ = obj.fromgroup("/test/numeric").readDataAttribute[String]("ds2", "attrstr")
-      val attrL_ = obj.fromgroup("/test/numeric").readDataAttribute[Long]("ds2", "attrL")
-      val attrI_ = obj.fromgroup("/test/numeric").readDataAttribute[Int]("ds2", "attrI")
+      val arrayOfFloat2 = obj.fromgroup("/test/numeric").readNumeric[Float]("dsF")
+      val attrd_ = obj.fromgroup("/test/numeric").readDataAttribute[Double]("dsF", "attrd")
+      val attrf_ = obj.fromgroup("/test/numeric").readDataAttribute[Float]("dsF", "attrf")
+      val attrstr_ = obj.fromgroup("/test/numeric").readDataAttribute[String]("dsF", "attrstr")
+      val attrL_ = obj.fromgroup("/test/numeric").readDataAttribute[Long]("dsF", "attrL")
+      val attrI_ = obj.fromgroup("/test/numeric").readDataAttribute[Int]("dsF", "attrI")
       assertEquals("Failed to recover array of floats", (arrayOfFloat.head zip arrayOfFloat2.head).map(x => x._1 - x._2).fold(0.0f)(_ + _), 0.0d, 0.0d)
     }
     {
-      val arrayOfLong2 = obj.fromgroup("/test/numeric").readNumeric[Long]("ds3")
-      val attrd_ = obj.fromgroup("/test/numeric").readDataAttribute[Double]("ds3", "attrd")
-      val attrf_ = obj.fromgroup("/test/numeric").readDataAttribute[Float]("ds3", "attrf")
-      val attrstr_ = obj.fromgroup("/test/numeric").readDataAttribute[String]("ds3", "attrstr")
-      val attrL_ = obj.fromgroup("/test/numeric").readDataAttribute[Long]("ds3", "attrL")
-      val attrI_ = obj.fromgroup("/test/numeric").readDataAttribute[Int]("ds3", "attrI")
+      val arrayOfLong2 = obj.fromgroup("/test/numeric").readNumeric[Long]("dsL")
+      val attrd_ = obj.fromgroup("/test/numeric").readDataAttribute[Double]("dsL", "attrd")
+      val attrf_ = obj.fromgroup("/test/numeric").readDataAttribute[Float]("dsL", "attrf")
+      val attrstr_ = obj.fromgroup("/test/numeric").readDataAttribute[String]("dsL", "attrstr")
+      val attrL_ = obj.fromgroup("/test/numeric").readDataAttribute[Long]("dsL", "attrL")
+      val attrI_ = obj.fromgroup("/test/numeric").readDataAttribute[Int]("dsL", "attrI")
       assertEquals("Failed to recover array of floats", (arrayOfLong.head zip arrayOfLong2.head).map(x => x._1 - x._2).fold(0L)(_ + _), 0, 0)
     }
 
     {
-      val arrayOfBytes2 = obj.fromgroup("/test/numeric").readNumeric[Byte]("ds4")
-      assertEquals("comparing attribute double",obj.fromgroup("/test/numeric").readDataAttribute[Double]("ds4", "attrd"),attrd,0)
-      assertEquals("comparing attribute double",obj.fromgroup("/test/numeric").readDataAttribute[Float]("ds4", "attrf"),attrf,0)
-      assertEquals("comparing attribute string",obj.fromgroup("/test/numeric").readDataAttribute[String]("ds4", "attrstr"),attrstr)
-      assertEquals("comparing attribute Long",obj.fromgroup("/test/numeric").readDataAttribute[Long]("ds4", "attrL") ,attrL)
-      assertEquals("Comparing attribute Int",obj.fromgroup("/test/numeric").readDataAttribute[Int]("ds4", "attrI"), attrI)
+      val arrayOfBytes2 = obj.fromgroup("/test/numeric").readNumeric[Byte]("dsB")
+      //assertEquals("Failed to recover array of floats", (arrayOfBytes2.head zip arrayOfBytes2.head).map(x => x._1 - x._2).fold(0L)(_ + _), 0, 0)
+      val aux1d=obj.fromgroup("/test/numeric").readGroupAttribute[Double]( "attrd")
+      assertEquals("comparing attribute double",aux1d,attrd,0)
+      assertEquals("comparing attribute double",obj.fromgroup("/test/numeric").readGroupAttribute[Float]("attrf"),attrf,0)
+      assertEquals("comparing attribute string",obj.fromgroup("/test/numeric").readGroupAttribute[String]( "attrstr"),attrstr)
+      assertEquals("comparing attribute Long",obj.fromgroup("/test/numeric").readGroupAttribute[Long]("attrL") ,attrL)
+      assertEquals("Comparing attribute Int",obj.fromgroup("/test/numeric").readGroupAttribute[Int]( "attrI"), attrI)
       assertEquals("Failed to recover array of floats", (arrayOfBytes.head zip arrayOfBytes2.head).map(x => x._1.toInt - x._2.toInt).fold(0)(_ + _), 0, 0)
     }
 
@@ -233,3 +221,4 @@ class TestWritingReading  extends FlatSpec with ShouldMatchers{
   }
 
 }
+
